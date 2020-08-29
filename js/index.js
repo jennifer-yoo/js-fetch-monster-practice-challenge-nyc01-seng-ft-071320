@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
 
+    const baseUrl = "http://localhost:3000/monsters"
     const getMonsters = () => {
-        fetch("http://localhost:3000/monsters")
+        fetch(baseUrl)
         .then(response => response.json())
         .then(monsters => iterateMonsters(monsters))
     }
@@ -15,23 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function iterateMonsters(monsterInput, start=0, end=50) {
         for (const monster of monsterInput.slice(start, end)) {
             (renderMonster(monster)) 
-        }
-        document.addEventListener("click", function(e){
-            if (e.target.id === "back") {
-                newStart = start - 50
-                newEnd = end - 50
-                for (const monster of monsterInput.slice(newStart, newEnd)) {
-                    (renderMonster(monster))
-                }
-            } else if (e.target.id === "forward") {
-                newStart = start + 50
-                newEnd = end + 50
-                for (const monster of monsterInput.slice(newStart, newEnd)) {
-                    (renderMonster(monster))
-                }
-            }
-        })
-        
+        }        
     }
 
     function renderMonster(oneMonst) {
@@ -44,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         monsterUl.id = oneMonst.id
 
-        console.log(`${oneMonst.id}`)
+        //console.log(`${oneMonst.id}`)
         monsterUl.insertAdjacentHTML("beforeend", `
             <li>${name}</li>
             <li>${age}</li>
@@ -58,32 +43,22 @@ document.addEventListener('DOMContentLoaded', function() {
         formHead.innerText = "Create a Monster"
 
         let form = document.createElement("form")
-        // form.setAttribute("method", "post")
-        // form.setAttribute("action", "submit.php")
-        
+        form.id = "form"
+
         let inputName = document.createElement("input")
-        inputName.setAttribute("type", "text")
-        inputName.setAttribute("value", "")
         inputName.setAttribute("placeholder", "name")
         inputName.id = "name"
 
         let inputAge = document.createElement("input")
-        inputAge.setAttribute("type", "number")
-        inputAge.setAttribute("value", "")
         inputAge.setAttribute("placeholder", "age")
         inputAge.id = "age"
 
         let inputDesc = document.createElement("input")
-        inputDesc.setAttribute("type", "text")
-        inputDesc.setAttribute("value", "")
         inputDesc.setAttribute("placeholder", "description")
         inputDesc.id = "description"
 
         let submit = document.createElement("button")
-        submit.setAttribute("type", "submit")
-        submit.setAttribute("value", "Submit")
         submit.innerText = "Submit"
-        submit.className = "submit-monster"
 
         formBox.append(formHead)
         formBox.append(form)
@@ -94,33 +69,74 @@ document.addEventListener('DOMContentLoaded', function() {
     } 
 
     function submitHandler() {
-        const form = document.querySelector('form')
-        document.addEventListener('submit', function(e) {
-            console.log(e.target)
-            // const name = form.name.value
-            // const age = form.age.value
-            // const desc = form.description.value
+        //grab form ID for Event Listener
+        const form = document.getElementById("form")
+        
+        form.addEventListener('submit', function(e) {
+            //should go in the beginning
+            e.preventDefault()
 
-            // e.preventDefault()
-            // e.reset()
-       // })
+            const name = form.name.value
+            const age = form.age.value
+            const desc = form.description.value
+
+            // create a new obj to send to POST
+            const newObj = {
+                name: name,
+                age: age,
+                desc: desc
+            }
+
+            // reset form 
+            form.reset()
+
+            const options = {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    "accept": "application/json"
+                },
+                body: JSON.stringify(newObj)
+            }
+
+            fetch(baseUrl, options)
+            .then(response => response.json())
+            //.then(renderMonster(newObj)) -- you do not need this because you are not rendering to page
+            .catch(error => {
+                console.log("There has been an error")
+            })
         })
     }
 
-    // function browseMonsters(monsterInput, num) {
-    //     document.addEventListener("click", function(e){
-    //         if (e.target.id === "back") {
-    //             newNum = num - 50
-    //             iterateMonsters(monsterInput, newNum);
-    //         } else if (e.target.id === "forward") {
-    //             newNum = num + 50
-    //             iterateMonsters(monsterInput, newNum);
-    //         }
-    //     })
-    // }
+    //set default argument to one, if user clicks back or forward. page# will increase/decrease
+    function browseMonsters(page=1) {
+        document.addEventListener("click", function(e){
+            if ((e.target.id === "back") ) {
+                page = page - 1
+                fetch('http://localhost:3000/monsters/?_limit=50&_page=' + page)
+                .then(response => response.json())
+                .then(monsters => iterateMonsters(monsters))
+                removeMons();
+            } else if (e.target.id === "forward") {
+                page = page + 1
+                    fetch('http://localhost:3000/monsters/?_limit=50&_page=' + page)
+                    .then(response => response.json())
+                    .then(monsters => iterateMonsters(monsters))
+                removeMons();
+            }
+        })
+    }
+
+    //removes extra li's from rendered page
+    function removeMons(){
+        const monCollection = document.getElementById('monster-container')
+        while (monCollection.firstChild){
+            monCollection.removeChild(monCollection.firstChild)
+        }
+    }
 
    getMonsters();
    createForm();
    submitHandler();
-   //browseMonsters();
+   browseMonsters();
 })
